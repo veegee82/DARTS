@@ -1,0 +1,11 @@
+# ez_setup
+flask
+# numpy
+opencv-python
+pillow
+python-gflags
+# setuptools
+requests
+tensorflow
+
+# -e git://github.com/Shumway82/tf_base.git#egg=tf_base
