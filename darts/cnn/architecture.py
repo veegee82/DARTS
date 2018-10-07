@@ -4,10 +4,43 @@ from tfcore.interfaces.IModel import IModel, IModel_Params
 from tfcore.core.layer import *
 from tfcore.core.activations import *
 from tfcore.core.loss import *
+from tfcore.utilities.params_serializer import ParamsSerializer
 
-from CNN.node import Node, Node_Params
-from CNN.cell import Cell
+from cnn.node import Node, Node_Params
+from cnn.cell import Cell
 
+
+class Architecture(ParamsSerializer):
+
+    def __init__(self, node_params=[]):
+
+        self.node_params = node_params
+
+    def load(self, path):
+        """ Load Parameter
+
+        # Arguments
+            path: Path of json-file
+        # Return
+            Parameter class
+        """
+        super().load(os.path.join(path))
+        for list in range(len(self.node_params)):
+            for params in range(len(self.node_params[list])):
+                node_params = Node_Params()
+                node_params.set_params(self.node_params[list][params])
+                self.node_params[list][params] = node_params
+
+    def save(self, path):
+        """ Save parameter as json-file
+
+        # Arguments
+            path: Path to save
+        """
+        if not os.path.exists(path):
+            os.makedirs(path)
+        super().save(os.path.join(path))
+        return
 
 class Network_Params(IModel_Params):
     """
@@ -157,7 +190,7 @@ class Network(IModel):
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y, logits=self.logits))
 
         # Weight decay regularizer
-        regularizer_L2 = 0.001 * tf.add_n(tf.get_collection('losses'))
+        regularizer_L2 = 0#0.001 * tf.add_n(tf.get_collection('losses'))
 
         # total loss by the mean of cross entropy loss and the weighted regularizer
         self.total_loss = tf.reduce_mean(loss + regularizer_L2)
@@ -212,8 +245,10 @@ class Network(IModel):
         last_node = [[self.nodes[-1]]]
         found = True
         edges = []
+        architecture_params = [[self.nodes[-1].params.__dict__]]
         while found:
             nodes = []
+            params = []
             for node in last_node[0]:
                 if len(node.prev_nodes) == 0:
                     found = False
@@ -226,8 +261,14 @@ class Network(IModel):
                             edges.append([prev_node, node])
                         if prev_node not in nodes:
                             nodes.append(prev_node)
-            last_node.insert(0, nodes)
+                            params.append(prev_node.params.__dict__)
+            if len(nodes) > 0:
+                last_node.insert(0, nodes)
+                architecture_params.append(params)
         graph.render(filename=filename, directory=path)
+
+        architecture = Architecture(node_params=architecture_params)
+        architecture.save(path=os.path.join(path, filename))
 
         print (' [*] Graph drawed')
 

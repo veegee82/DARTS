@@ -1,5 +1,5 @@
 import tensorflow as tf
-from CNN.node import Node
+from cnn.node import Node
 
 
 class Cell(object):

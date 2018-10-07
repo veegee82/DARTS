@@ -30,6 +30,9 @@ class Node_Params(ParamsSerializer):
         else:
             self.name_in_graph = 'C{}L{}_{}_{}'.format(self.cell_id, self.layer, self.func_name, appendix)
 
+    def set_params(self, params):
+        self.__dict__.update(params)
+
 
 class Node(object):
 
@@ -48,6 +51,7 @@ class Node(object):
                  prev_weights=tf.constant([1.0]),
                  prev_nodes=[],
                  name=''):
+
         self.is_training = is_training
         self.prev_weights = prev_weights
         self.prev_nodes = prev_nodes

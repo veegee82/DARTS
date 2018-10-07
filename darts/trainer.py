@@ -1,6 +1,6 @@
 import time
 from tfcore.interfaces.ITraining import *
-from CNN.architecture import Network, Network_Params
+from cnn.architecture import Network, Network_Params
 from tfcore.utilities.preprocessing import *
 from tfcore.utilities.files import get_filename
 
@@ -238,7 +238,7 @@ class Trainer(ITrainer):
 
             self.writer.add_summary(g_summery, iteration)
 
-        if np.mod(epoch + 1, 5) == 0:
+        if np.mod(epoch, 5) == 0:
             self.network.make_graph(path=self.architectur_dir,
                                     filename='Epoch_{}'.format(get_filename(epoch, extension='')))
 
@@ -332,16 +332,7 @@ class Trainer(ITrainer):
         self.images_train = normalize(batch_X, normalization_type=self.params.input_norm)
         self.label_train = np.eye(2)[np.array([batch_Y]).reshape(-1)]
 
-        #   Validate after N iterations
-        if epoch < 2:
-            if np.mod(counter, self.params.evals_per_iteration) == 0:
-                self.validate(epoch, counter, idx)
-        else:
-            if np.mod(counter, batch_total) == 0:
-                self.validate(epoch, counter, idx)
-
         # Optimize Classifier
-
         feed_dict = {self.all_X: self.images_train,
                      self.all_Y: self.label_train,
                      self.epoch: epoch,
@@ -368,6 +359,14 @@ class Trainer(ITrainer):
 
         print("Train UNET: Epoch: [%2d] [%4d/%4d] time: %4.4f, g_loss: %.8f, alpha_loss: %.8f"
               % (epoch, idx, batch_total, time.time() - start_time, g_loss, alpha_loss))
+
+        #   Validate after N iterations
+        if epoch < 2:
+            if np.mod(counter, self.params.evals_per_iteration) == 0:
+                self.validate(epoch, counter, idx)
+        else:
+            if np.mod(counter, batch_total) == 0:
+                self.validate(epoch, counter, idx)
 
         #   Save model and checkpoint
         if np.mod(counter + 1, 50) == 0:
