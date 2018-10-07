@@ -130,9 +130,10 @@ class Cell(object):
                         type=type,
                         activation=activation,
                         normalization=normalization,
-                        prev_weights=self.weights[layer],
+                        prev_weights=self.weights[-1],
                         prev_nodes=prev_nodes,
-                        is_training=is_training)
+                        is_training=is_training,
+                        name='concat')
         self.nodes.append([new_node])
 
     def init_weights(self, level, op_count, cell_id, type):

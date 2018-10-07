@@ -2,6 +2,7 @@ import time
 from tfcore.interfaces.ITraining import *
 from CNN.architecture import Network, Network_Params
 from tfcore.utilities.preprocessing import *
+from tfcore.utilities.files import get_filename
 
 
 class Trainer_Params(ITrainer_Params):
@@ -152,17 +153,22 @@ class Trainer(ITrainer):
         self.checkpoint_dir = os.path.join(self.params.root_dir,
                                            self.params.experiment_name)
         self.log_dir = os.path.join(self.checkpoint_dir, 'logs')
+        self.architectur_dir = os.path.join(self.checkpoint_dir, 'architectures')
 
         if self.params.new:
             if os.path.exists(self.checkpoint_dir):
                 shutil.rmtree(self.checkpoint_dir)
             if os.path.exists(self.log_dir):
                 shutil.rmtree(self.log_dir)
+            if os.path.exists(self.architectur_dir):
+                shutil.rmtree(self.architectur_dir)
 
         if not os.path.exists(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
+        if not os.path.exists(self.architectur_dir):
+            os.makedirs(self.architectur_dir)
 
         #   Save the Trainer_Params as json
         self.params.save(self.checkpoint_dir)
@@ -231,6 +237,10 @@ class Trainer(ITrainer):
                            self.is_eval: False})
 
             self.writer.add_summary(g_summery, iteration)
+
+        if np.mod(epoch + 1, 5) == 0:
+            self.network.make_graph(path=self.architectur_dir,
+                                    filename='Epoch_{}'.format(get_filename(epoch, extension='')))
 
         print("[Sample] g_loss: {}, eval_loss: {}".format(g_loss_val, g_loss_val_2))
 

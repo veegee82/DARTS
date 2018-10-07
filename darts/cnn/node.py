@@ -45,7 +45,7 @@ class Node(object):
                  activation='relu',
                  normalization='IN',
                  pre_activation=True,
-                 prev_weights=[],
+                 prev_weights=tf.constant([1.0]),
                  prev_nodes=[],
                  name=''):
         self.is_training = is_training

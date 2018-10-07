@@ -1,4 +1,5 @@
 import os
+from graphviz import Digraph
 from tfcore.interfaces.IModel import IModel, IModel_Params
 from tfcore.core.layer import *
 from tfcore.core.activations import *
@@ -107,14 +108,14 @@ class Network(IModel):
                              name='input-1')
 
             cell_types = ['N', 'R', 'N', 'R', 'N', 'R']
-            nodes = [cell_prev_prev, cell_prev]
+            self.nodes = [cell_prev_prev, cell_prev]
             for cell_id in range(len(cell_types)):
                 if cell_types[cell_id] == 'R':
                     f_out *= 2
 
                 cell = Cell(layer=3,
-                            cell_prev_prev=nodes[-2],
-                            cell_prev=nodes[-1],
+                            cell_prev_prev=self.nodes[-2],
+                            cell_prev=self.nodes[-1],
                             f_out=f_out,
                             type=cell_types[cell_id],
                             cell_id=cell_id,
@@ -122,10 +123,10 @@ class Network(IModel):
                             normalization=self.params.normalization,
                             is_training=self.is_training,
                             is_eval=self.is_eval)
-                nodes.append(cell.nodes[-1][-1])
+                self.nodes.append(cell.nodes[-1][-1])
                 self.make_summary(cell)
 
-            net = conv2d(nodes[-1].features,
+            net = conv2d(self.nodes[-1].features,
                          k_size=1,
                          f_out=2,
                          stride=1,
@@ -180,3 +181,53 @@ class Network(IModel):
         self.summary_val_2.append(tf.summary.scalar("total_loss_eval", self.total_loss))
 
         return self.total_loss
+
+    def make_graph(self, path, filename):
+        last_node = [[self.nodes[-1]]]
+        found = True
+        while found:
+            for node in last_node[0]:
+                try:
+                    if len(node.prev_nodes) > 0:
+
+                        weigths = tf.where(node.prev_weights >= 1.0 / len(node.prev_nodes),
+                                               tf.ones_like(node.prev_weights),
+                                               tf.zeros_like(node.prev_weights))
+                        index = self.sess.run([weigths], feed_dict={self.is_eval: True})[0]
+
+                        nodes = []
+                        for idx in range(len(index)):
+                            if index[idx] == 1.0:
+                                node.prev_nodes[idx].active = True
+                                nodes.append(node.prev_nodes[idx])
+                            else:
+                                node.prev_nodes[idx].active = False
+                        last_node.insert(0, nodes)
+                    else:
+                        found = False
+                except:
+                    print ('')
+
+        graph = Digraph('G', filename='hello.gv', format='png')
+        last_node = [[self.nodes[-1]]]
+        found = True
+        edges = []
+        while found:
+            nodes = []
+            for node in last_node[0]:
+                if len(node.prev_nodes) == 0:
+                    found = False
+                    break
+
+                for prev_node in node.prev_nodes:
+                    if prev_node.active and node.active:
+                        if [prev_node, node] not in edges:
+                            graph.edge(prev_node.name, node.name)
+                            edges.append([prev_node, node])
+                        if prev_node not in nodes:
+                            nodes.append(prev_node)
+            last_node.insert(0, nodes)
+        graph.render(filename=filename, directory=path)
+
+        print (' [*] Graph drawed')
+
