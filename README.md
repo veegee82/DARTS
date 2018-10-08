@@ -12,3 +12,5 @@ on CIFAR-10, ImageNet, Penn Treebank and WikiText-2 show that our
 algorithm excels in discovering high-performance convolutional architectures for
 image classification and recurrent architectures for language modeling, while being
 orders of magnitude faster than state-of-the-art non-differentiable techniques.
+
+![bad](https://raw.githubusercontent.com/quark0/darts/master/img/darts.png)
