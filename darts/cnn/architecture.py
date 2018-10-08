@@ -51,10 +51,14 @@ class Network_Params(IModel_Params):
                  f_start=32,
                  activation='relu',
                  normalization='IN',
+                 load_model=False,
+                 model_name='',
                  scope='Classifier',
                  name='Classifier'):
         super().__init__(scope=scope, name=name)
 
+        self.load_model = load_model
+        self.model_name = model_name
         self.f_start = f_start
         self.activation = activation
         self.normalization = normalization
@@ -96,7 +100,10 @@ class Network(IModel):
             Tensor of dimension 4D
         """
         self.reuse = reuse
-        super().build_model(input, is_train, reuse)
+        if not self.params.load_model:
+            super().build_model(input, is_train, reuse)
+        else:
+            self.load_model(input, self.params.model_name)
 
         return self.probs
 
@@ -123,7 +130,6 @@ class Network(IModel):
                                   cell_id=0,
                                   layer=0,
                                   type='N',
-                                  activation=self.params.activation,
                                   normalization=self.params.normalization,
                                   is_training=self.is_training,
                                   name='input-2')
@@ -135,7 +141,6 @@ class Network(IModel):
                              cell_id=0,
                              layer=0,
                              type='N',
-                             activation=self.params.activation,
                              normalization=self.params.normalization,
                              is_training=self.is_training,
                              name='input-1')
@@ -177,6 +182,94 @@ class Network(IModel):
         print(' [*] DARTS loaded...')
         return self.logits
 
+    def load_model(self, net, model_name):
+
+        architecture = Architecture()
+        architecture.load(model_name)
+
+        def find_params(name, params_list):
+            for list in params_list:
+                for node_params in list:
+                    if node_params.name_in_graph == name:
+                        return node_params
+            return None
+
+        def find_node(node_name, node_list):
+            for node in node_list:
+                if node_name == node.params.name_in_graph:
+                    return node
+            return None
+
+        def create_prev_node(node_params, node_list, params_list):
+            concat = []
+            for prev_node_name in node_params.prev_node_names:
+                node = find_node(prev_node_name, node_list)
+                prev_params = find_params(prev_node_name, params_list)
+
+                if node is None and prev_params is not None:
+                    node = create_prev_node(prev_params, node_list, params_list)
+                if node is not None:
+                    concat.append(node.features)
+
+            if 'concat' in node_params.name_in_graph:
+                net = tf.concat(concat, axis=-1)
+            else:
+                net = tf.add_n(concat) / len(concat)
+
+            new_node = Node(net=net,
+                            activation=self.params.activation,
+                            normalization=self.params.normalization,
+                            params=node_params,
+                            is_training=self.is_training)
+            node_list.append(new_node)
+            return new_node
+
+        f_out = self.params.f_start
+        with tf.variable_scope(self.params.scope, reuse=tf.AUTO_REUSE):
+            cell_prev_prev = Node(net=net,
+                                  f_out=f_out,
+                                  stride=1,
+                                  func_name='conv3x3',
+                                  cell_id=0,
+                                  layer=0,
+                                  type='N',
+                                  normalization=self.params.normalization,
+                                  is_training=self.is_training,
+                                  name='input-2')
+
+            cell_prev = Node(net=net,
+                             f_out=f_out,
+                             stride=1,
+                             func_name='conv3x3',
+                             cell_id=0,
+                             layer=0,
+                             type='N',
+                             normalization=self.params.normalization,
+                             is_training=self.is_training,
+                             name='input-1')
+
+            node = create_prev_node(architecture.node_params[0][0],
+                                    [cell_prev_prev, cell_prev],
+                                    architecture.node_params)
+
+            net = conv2d(node.features,
+                         k_size=1,
+                         f_out=2,
+                         stride=1,
+                         activation=self.params.activation,
+                         normalization=self.params.normalization,
+                         use_pre_activation=True,
+                         is_training=self.is_training,
+                         name='conv_GAP')
+            net = avg_pool(net, radius=net.shape[1], stride=1, padding='VALID', name='GAP')
+            net = tf.reduce_mean(net, axis=[1, 2])
+
+            self.logits = net
+            self.probs = tf.nn.softmax(net)
+
+        print(' [*] DARTS loaded...')
+        return self.logits
+
     def make_summary(self, cell):
         for weight in cell.weights:
             weight = tf.expand_dims(weight, axis=1)
@@ -190,7 +283,7 @@ class Network(IModel):
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y, logits=self.logits))
 
         # Weight decay regularizer
-        regularizer_L2 = 0#0.001 * tf.add_n(tf.get_collection('losses'))
+        regularizer_L2 = 0.001 * tf.add_n(tf.get_collection('losses'))
 
         # total loss by the mean of cross entropy loss and the weighted regularizer
         self.total_loss = tf.reduce_mean(loss + regularizer_L2)
@@ -216,30 +309,32 @@ class Network(IModel):
         return self.total_loss
 
     def make_graph(self, path, filename):
+        self.nodes[-1].active = True
         last_node = [[self.nodes[-1]]]
         found = True
         while found:
+            nodes = []
             for node in last_node[0]:
-                try:
-                    if len(node.prev_nodes) > 0:
 
-                        weigths = tf.where(node.prev_weights >= 1.0 / len(node.prev_nodes),
+                if len(node.prev_nodes) > 0:
+                    weigths = tf.where(node.prev_weights >= 1.0 / len(node.prev_nodes),
                                                tf.ones_like(node.prev_weights),
                                                tf.zeros_like(node.prev_weights))
-                        index = self.sess.run([weigths], feed_dict={self.is_eval: True})[0]
-
-                        nodes = []
-                        for idx in range(len(index)):
-                            if index[idx] == 1.0:
-                                node.prev_nodes[idx].active = True
+                    index = self.sess.run([weigths], feed_dict={self.is_eval: True})[0]
+                    node.params.prev_node_names = []
+                    for idx in range(len(index)):
+                        if index[idx] == 1.0:
+                            node.prev_nodes[idx].active = True
+                            if node.prev_nodes[idx].params.name_in_graph not in node.params.prev_node_names:
+                                node.params.prev_node_names.append(node.prev_nodes[idx].params.name_in_graph)
+                            if node.prev_nodes[idx] not in nodes:
                                 nodes.append(node.prev_nodes[idx])
-                            else:
-                                node.prev_nodes[idx].active = False
-                        last_node.insert(0, nodes)
-                    else:
-                        found = False
-                except:
-                    print ('')
+                        else:
+                            node.prev_nodes[idx].active = False
+            if len(nodes) > 0:
+                last_node.insert(0, nodes)
+            else:
+                found = False
 
         graph = Digraph('G', filename='hello.gv', format='png')
         last_node = [[self.nodes[-1]]]
@@ -259,12 +354,14 @@ class Network(IModel):
                         if [prev_node, node] not in edges:
                             graph.edge(prev_node.name, node.name)
                             edges.append([prev_node, node])
-                        if prev_node not in nodes:
-                            nodes.append(prev_node)
-                            params.append(prev_node.params.__dict__)
+                            if prev_node not in nodes:
+                                nodes.append(prev_node)
+                                params.append(prev_node.params.__dict__)
             if len(nodes) > 0:
                 last_node.insert(0, nodes)
                 architecture_params.append(params)
+            else:
+                found = False
         graph.render(filename=filename, directory=path)
 
         architecture = Architecture(node_params=architecture_params)

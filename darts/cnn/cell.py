@@ -98,7 +98,7 @@ class Cell(object):
                                 stride=self.stride,
                                 func_name=func_name,
                                 cell_id=cell_id,
-                                layer=layer,
+                                layer=layer + 1,
                                 type=type,
                                 activation=activation,
                                 normalization=normalization,

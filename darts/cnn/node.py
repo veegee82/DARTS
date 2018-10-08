@@ -15,8 +15,9 @@ class Node_Params(ParamsSerializer):
                  layer=0,
                  type='N',
                  pre_activation=True,
-                 prev_node_names=[],
+                 prev_nodes=[],
                  appendix=''):
+
         self.f_out = f_out
         self.stride = stride
         self.func_name = func_name
@@ -24,11 +25,12 @@ class Node_Params(ParamsSerializer):
         self.layer = layer
         self.type = type
         self.pre_activation = pre_activation
-        self.prev_node_names = prev_node_names
+        self.prev_node_names = []
         if appendix == '':
             self.name_in_graph = 'C{}L{}_{}'.format(self.cell_id, self.layer, self.func_name)
         else:
             self.name_in_graph = 'C{}L{}_{}_{}'.format(self.cell_id, self.layer, self.func_name, appendix)
+        #self.prev_node_names = [prev_node.params.name_in_graph for prev_node in prev_nodes]
 
     def set_params(self, params):
         self.__dict__.update(params)
@@ -45,34 +47,37 @@ class Node(object):
                  cell_id=0,
                  layer=0,
                  type='N',
-                 activation='relu',
+                 activation='none',
                  normalization='IN',
                  pre_activation=True,
                  prev_weights=tf.constant([1.0]),
                  prev_nodes=[],
-                 name=''):
+                 name='',
+                 params=None):
 
         self.is_training = is_training
         self.prev_weights = prev_weights
         self.prev_nodes = prev_nodes
-        self.active = True
+        self.active = False
         self.normalization = normalization
         self.activation = activation
 
-        self.params = Node_Params(f_out=f_out,
-                                  stride=stride,
-                                  func_name=func_name,
-                                  cell_id=cell_id,
-                                  layer=layer,
-                                  type=type,
-                                  pre_activation=pre_activation,
-                                  prev_node_names=[prev_node.name for prev_node in prev_nodes],
-                                  appendix=name)
+        self.params = params
+        if self.params is None:
+            self.params = Node_Params(f_out=f_out,
+                                      stride=stride,
+                                      func_name=func_name,
+                                      cell_id=cell_id,
+                                      layer=layer,
+                                      type=type,
+                                      pre_activation=pre_activation,
+                                      prev_nodes=prev_nodes,
+                                      appendix=name)
 
         self.features = self.get_function(net,
-                                          f_out=f_out,
-                                          stride=stride,
-                                          func_name=func_name,
+                                          f_out=self.params.f_out,
+                                          stride=self.params.stride,
+                                          func_name=self.params.func_name,
                                           name=self.params.name_in_graph)
         self.width = self.features.shape[1]
         self.height = self.features.shape[2]

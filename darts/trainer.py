@@ -26,6 +26,7 @@ class Trainer_Params(ITrainer_Params):
         """
         super().__init__()
 
+        self.root_dir = "../../Results/"
         self.image_size = image_size
         self.epoch = 2000
         self.batch_size = 16
@@ -38,6 +39,8 @@ class Trainer_Params(ITrainer_Params):
         self.input_norm = 'tanh'
         self.normalization_G = 'IN'
         self.cyclic_LR = False
+        self.load_model = False
+        self.model_file = os.path.join(self.root_dir, 'Final', 'Epoch_000025')
 
         self.use_pretrained_generator = True
         self.pretrained_generator_dir = model_path
@@ -56,8 +59,6 @@ class Trainer_Params(ITrainer_Params):
                     self.save(params_path)
             else:
                 self.save(params_path)
-
-        self.root_dir = "../../Results/"
 
     def load(self, path):
         """ Load Parameter
@@ -99,7 +100,9 @@ class Trainer(ITrainer):
 
         #   Load Model
         network_params = Network_Params(activation='relu',
-                                        normalization=self.params.normalization_G)
+                                        normalization=self.params.normalization_G,
+                                        load_model=self.params.load_model,
+                                        model_name=self.params.model_file)
 
         network_params.decay = self.params.decay
         network_params.step_decay = self.params.step_decay
@@ -238,7 +241,7 @@ class Trainer(ITrainer):
 
             self.writer.add_summary(g_summery, iteration)
 
-        if np.mod(epoch, 5) == 0:
+        if np.mod(epoch, 20) == 0 and not self.params.load_model:
             self.network.make_graph(path=self.architectur_dir,
                                     filename='Epoch_{}'.format(get_filename(epoch, extension='')))
 
@@ -291,8 +294,10 @@ class Trainer(ITrainer):
         with tf.control_dependencies(update_ops):
             self.g_optim = tf.train.AdamOptimizer(self.network.learning_rate, beta1=self.params.beta1).minimize(
                 self.network.total_loss, var_list=self.g_vars)
-            self.alpha_optim = tf.train.AdamOptimizer(0.005, beta1=self.params.beta1).minimize(self.network.total_loss,
-                                                                                               var_list=self.alpha_vars)
+            if not self.params.load_model:
+                self.alpha_optim = tf.train.AdamOptimizer(0.005, beta1=self.params.beta1).minimize(
+                    self.network.total_loss,
+                    var_list=self.alpha_vars)
 
         return []  # model_list
 
@@ -345,17 +350,19 @@ class Trainer(ITrainer):
 
         self.writer.add_summary(summary_G, counter)
 
-        feed_dict = {self.all_X: self.image_val,
-                     self.all_Y: self.label_val,
-                     self.epoch: epoch,
-                     self.network.learning_rate: self.params.learning_rate_G,
-                     self.is_training: True,
-                     self.is_eval: False}
+        alpha_loss = 0
+        if not self.params.load_model:
+            feed_dict = {self.all_X: self.image_val,
+                         self.all_Y: self.label_val,
+                         self.epoch: epoch,
+                         self.network.learning_rate: self.params.learning_rate_G,
+                         self.is_training: True,
+                         self.is_eval: False}
 
-        _, alpha_loss, summary_G = self.sess.run([self.alpha_optim, self.network.total_loss, self.summary],
-                                                 feed_dict=feed_dict)
+            _, alpha_loss, summary_G = self.sess.run([self.alpha_optim, self.network.total_loss, self.summary],
+                                                     feed_dict=feed_dict)
 
-        self.writer.add_summary(summary_G, counter)
+            self.writer.add_summary(summary_G, counter)
 
         print("Train UNET: Epoch: [%2d] [%4d/%4d] time: %4.4f, g_loss: %.8f, alpha_loss: %.8f"
               % (epoch, idx, batch_total, time.time() - start_time, g_loss, alpha_loss))
