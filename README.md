@@ -14,3 +14,7 @@ image classification and recurrent architectures for language modeling, while be
 orders of magnitude faster than state-of-the-art non-differentiable techniques.
 
 ![bad](https://raw.githubusercontent.com/quark0/darts/master/img/darts.png)
+
+### Found Architecture
+
+![bad](https://raw.githubusercontent.com/veegee82/DARTS/master/images/architecture.png)
