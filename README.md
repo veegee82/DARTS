@@ -15,6 +15,57 @@ orders of magnitude faster than state-of-the-art non-differentiable techniques.
 
 ![bad](https://raw.githubusercontent.com/quark0/darts/master/img/darts.png)
 
+Figure 1: Relaxing of the architecture.
+
 ### Found Architecture
 
 ![bad](https://raw.githubusercontent.com/veegee82/DARTS/master/images/architecture.png)
+
+Figure 2: Founded architecture 
+
+#### Accuracy and Loss
+![bad](https://raw.githubusercontent.com/veegee82/DARTS/master/images/acc.PNG)
+![bad](https://raw.githubusercontent.com/veegee82/DARTS/master/images/loss.PNG)
+
+Figure 3: Accuracy and loss for test-set(left) and training-set(right)
+
+## Installation tf_base package
+1. Clone the repository
+```
+$ git clone https://github.com/veegee82/tf_base.git
+```
+2. Go to folder
+```
+$ cd tf_base
+```
+3. Install with pip3
+``` 
+$ pip3 install -e .
+```
+
+## Install Binary-Classification package
+
+1. Clone the repository
+```
+$ git clone https://github.com/veegee82/DARTS.git
+```
+2. Go to folder
+```
+$ cd DARTS
+```
+3. Install with pip3
+```
+$ pip3 install -e .
+```
+
+## Usage-Example
+
+1. Training
+```
+$ python pipeline_trainer.py --dataset "../Data/"
+```
+
+2. Inferencing
+```
+$ python pipeline_inferencer.py --dataset "../Data/" --model_dir "Nails" 
+```
