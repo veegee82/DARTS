@@ -43,7 +43,7 @@ $ cd tf_base
 $ pip3 install -e .
 ```
 
-## Install Binary-Classification package
+## Install DARTS package
 
 1. Clone the repository
 ```
