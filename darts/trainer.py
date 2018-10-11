@@ -28,19 +28,21 @@ class Trainer_Params(ITrainer_Params):
 
         self.root_dir = "../../Results/"
         self.image_size = image_size
-        self.epoch = 2000
+        self.epoch = 1000
         self.batch_size = 16
-        self.decay = 0.99
-        self.step_decay = 100
+        self.decay = 0.9
+        self.step_decay = 250
         self.beta1 = 0.9
-        self.learning_rate_G = 0.0005
+        self.learning_rate_G = 0.001
+        self.learning_rate_Alpha = 5e-4
         self.use_tensorboard = True
         self.gpus = [0]
         self.input_norm = 'tanh'
         self.normalization_G = 'IN'
         self.cyclic_LR = False
         self.load_model = False
-        self.model_file = os.path.join(self.root_dir, 'Final', 'Epoch_000025')
+        self.make_graph = 10
+        self.model_file = os.path.join(self.root_dir, 'Final', 'Epoch_000340')
 
         self.use_pretrained_generator = True
         self.pretrained_generator_dir = model_path
@@ -241,7 +243,7 @@ class Trainer(ITrainer):
 
             self.writer.add_summary(g_summery, iteration)
 
-        if np.mod(epoch, 20) == 0 and not self.params.load_model:
+        if np.mod(epoch, self.params.make_graph) == 0 and not self.params.load_model:
             self.network.make_graph(path=self.architectur_dir,
                                     filename='Epoch_{}'.format(get_filename(epoch, extension='')))
 
@@ -290,15 +292,28 @@ class Trainer(ITrainer):
         self.g_vars = [var for var in t_vars if not ('alpha' in var.name or 'weight' in var.name)]
         self.alpha_vars = [var for var in t_vars if ('alpha' in var.name or 'weight' in var.name)]
 
+        learning_rate = tf.train.exponential_decay(self.params.learning_rate_G,  # Base learning rate.
+                                                   self.global_step,  # Current index into the dataset.
+                                                   self.params.step_decay,  # Decay step.
+                                                   self.params.decay,  # Decay rate.
+                                                   staircase=True)
+
+        learning_rate = tf.clip_by_value(learning_rate,
+                                         clip_value_min=1e-5,
+                                         clip_value_max=self.params.learning_rate_G)
+
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            self.g_optim = tf.train.AdamOptimizer(self.network.learning_rate, beta1=self.params.beta1).minimize(
-                self.network.total_loss, var_list=self.g_vars)
+            self.g_optim = tf.train.AdamOptimizer(learning_rate,
+                                                  beta1=self.params.beta1).minimize(self.network.total_loss,
+                                                                                    global_step=self.global_step,
+                                                                                    var_list=self.g_vars)
             if not self.params.load_model:
-                self.alpha_optim = tf.train.AdamOptimizer(0.005, beta1=self.params.beta1).minimize(
-                    self.network.total_loss,
-                    var_list=self.alpha_vars)
+                self.alpha_optim = tf.train.AdamOptimizer(self.params.learning_rate_Alpha,
+                                                          beta1=0.5).minimize(self.network.total_loss,
+                                                                              var_list=self.alpha_vars)
 
+        self.network.summary.append(tf.summary.scalar("learning rate", learning_rate))
         return []  # model_list
 
     def train_online(self, batch_X, batch_Y, epoch=0, counter=1, idx=0, batch_total=0):

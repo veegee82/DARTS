@@ -15,7 +15,6 @@ class Node_Params(ParamsSerializer):
                  layer=0,
                  type='N',
                  pre_activation=True,
-                 prev_nodes=[],
                  appendix=''):
 
         self.f_out = f_out
@@ -27,10 +26,9 @@ class Node_Params(ParamsSerializer):
         self.pre_activation = pre_activation
         self.prev_node_names = []
         if appendix == '':
-            self.name_in_graph = 'C{}L{}_{}'.format(self.cell_id, self.layer, self.func_name)
+            self.name_in_graph = '{}_C{}L{}_{}'.format(self.type, self.cell_id, self.layer, self.func_name)
         else:
-            self.name_in_graph = 'C{}L{}_{}_{}'.format(self.cell_id, self.layer, self.func_name, appendix)
-        #self.prev_node_names = [prev_node.params.name_in_graph for prev_node in prev_nodes]
+            self.name_in_graph = '{}_C{}L{}_{}_{}'.format(self.type, self.cell_id, self.layer, self.func_name, appendix)
 
     def set_params(self, params):
         self.__dict__.update(params)
@@ -51,16 +49,20 @@ class Node(object):
                  normalization='IN',
                  pre_activation=True,
                  prev_weights=tf.constant([1.0]),
+                 prev_weights_eval=tf.constant([1.0]),
                  prev_nodes=[],
+                 L2_weight=0.001,
                  name='',
                  params=None):
 
         self.is_training = is_training
         self.prev_weights = prev_weights
+        self.prev_weights_eval = prev_weights_eval
         self.prev_nodes = prev_nodes
         self.active = False
         self.normalization = normalization
         self.activation = activation
+        self.L2_weight = L2_weight
 
         self.params = params
         if self.params is None:
@@ -71,7 +73,6 @@ class Node(object):
                                       layer=layer,
                                       type=type,
                                       pre_activation=pre_activation,
-                                      prev_nodes=prev_nodes,
                                       appendix=name)
 
         self.features = self.get_function(net,
@@ -92,7 +93,7 @@ class Node(object):
                     'avg_pool': lambda net, f_out, stride, name: self.avg_pool(net=net, k_size=3, stride=stride,
                                                                                name=name),
                     'skip': lambda net, f_out, stride, name: self.factorize(net=net, f_out=f_out, name=name)
-                    if stride > 1 else self.Identity(net=net),
+                    if stride > 1 else self.Identity(net=net, name=name),
                     'conv1x1': lambda net, f_out, stride, name: self.conv(net=net, k_size=1, f_out=f_out, stride=stride,
                                                                           name=name),
                     'conv3x3': lambda net, f_out, stride, name: self.conv(net=net, k_size=3, f_out=f_out,
@@ -110,8 +111,10 @@ class Node(object):
             net = max_pool(net, stride=stride, name=name)
         return tf.multiply(net, 0)
 
-    def Identity(self, net):
-        return net
+    def Identity(self, net, name):
+        with tf.variable_scope(name):
+            norm_func = get_normalization(self.normalization)
+            return norm_func(net, training=self.is_training)
 
     def conv(self, net, k_size, f_out, stride, name):
         return conv2d(net,
@@ -121,6 +124,7 @@ class Node(object):
                       activation=self.activation,
                       normalization=self.normalization,
                       use_pre_activation=self.params.pre_activation,
+                      L2_weight=self.L2_weight,
                       is_training=self.is_training,
                       name=name)
 
@@ -132,13 +136,14 @@ class Node(object):
                       activation=self.activation,
                       normalization=self.normalization,
                       use_pre_activation=self.params.pre_activation,
+                      L2_weight=self.L2_weight,
                       is_training=self.is_training,
                       name=name)
 
     def max_pool(self, net, k_size, stride, name):
         with tf.variable_scope(name):
             net = max_pool(net, radius=k_size, stride=stride, name=name)
-            norm_func = get_normalization(self.normalization, )
+            norm_func = get_normalization(self.normalization)
             return norm_func(net, training=self.is_training)
 
     def avg_pool(self, net, k_size, stride, name):

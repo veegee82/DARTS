@@ -5,7 +5,7 @@ from tfcore.core.layer import *
 from tfcore.core.activations import *
 from tfcore.core.loss import *
 from tfcore.utilities.params_serializer import ParamsSerializer
-
+from tfcore.utilities.utils import reduce_std
 from cnn.node import Node, Node_Params
 from cnn.cell import Cell
 
@@ -51,7 +51,9 @@ class Network_Params(IModel_Params):
                  f_start=32,
                  activation='relu',
                  normalization='IN',
+                 multiplier=1.750,
                  load_model=False,
+                 L2_weight=3e-4,
                  model_name='',
                  scope='Classifier',
                  name='Classifier'):
@@ -62,8 +64,9 @@ class Network_Params(IModel_Params):
         self.f_start = f_start
         self.activation = activation
         self.normalization = normalization
+        self.L2_weight = L2_weight
         self.path = os.path.realpath(__file__)
-
+        self.multiplier = multiplier
 
 class Network(IModel):
     """
@@ -131,6 +134,7 @@ class Network(IModel):
                                   layer=0,
                                   type='N',
                                   normalization=self.params.normalization,
+                                  L2_weight=self.params.L2_weight,
                                   is_training=self.is_training,
                                   name='input-2')
 
@@ -142,6 +146,7 @@ class Network(IModel):
                              layer=0,
                              type='N',
                              normalization=self.params.normalization,
+                             L2_weight=self.params.L2_weight,
                              is_training=self.is_training,
                              name='input-1')
 
@@ -159,10 +164,14 @@ class Network(IModel):
                             cell_id=cell_id,
                             activation=self.params.activation,
                             normalization=self.params.normalization,
+                            L2_weight=self.params.L2_weight,
                             is_training=self.is_training,
-                            is_eval=self.is_eval)
+                            multiplier=self.params.multiplier,
+                            summary_val=self.summary_val,
+                            summary_val_2=self.summary_val_2,
+                            summary_vis=self.summary_vis,
+                            summary_vis_2=self.summary_vis_2)
                 self.nodes.append(cell.nodes[-1][-1])
-                self.make_summary(cell)
 
             net = conv2d(self.nodes[-1].features,
                          k_size=1,
@@ -171,6 +180,7 @@ class Network(IModel):
                          activation=self.params.activation,
                          normalization=self.params.normalization,
                          use_pre_activation=True,
+                         L2_weight=self.params.L2_weight,
                          is_training=self.is_training,
                          name='conv_GAP')
             net = avg_pool(net, radius=net.shape[1], stride=1, padding='VALID', name='GAP')
@@ -220,6 +230,7 @@ class Network(IModel):
                             activation=self.params.activation,
                             normalization=self.params.normalization,
                             params=node_params,
+                            L2_weight=self.params.L2_weight,
                             is_training=self.is_training)
             node_list.append(new_node)
             return new_node
@@ -234,6 +245,7 @@ class Network(IModel):
                                   layer=0,
                                   type='N',
                                   normalization=self.params.normalization,
+                                  L2_weight=self.params.L2_weight,
                                   is_training=self.is_training,
                                   name='input-2')
 
@@ -245,6 +257,7 @@ class Network(IModel):
                              layer=0,
                              type='N',
                              normalization=self.params.normalization,
+                             L2_weight=self.params.L2_weight,
                              is_training=self.is_training,
                              name='input-1')
 
@@ -258,6 +271,7 @@ class Network(IModel):
                          stride=1,
                          activation=self.params.activation,
                          normalization=self.params.normalization,
+                         L2_weight=self.params.L2_weight,
                          use_pre_activation=True,
                          is_training=self.is_training,
                          name='conv_GAP')
@@ -275,18 +289,18 @@ class Network(IModel):
             weight = tf.expand_dims(weight, axis=1)
             weight = tf.expand_dims(weight, axis=0)
             weight = tf.expand_dims(weight, axis=0)
-            self.summary_vis.append(tf.summary.image("test_weight_{}".format(cell.cell_id), weight))
-            self.summary_vis_2.append(tf.summary.image("eval_weight_{}".format(cell.cell_id), weight))
+            self.summary_vis.append(tf.summary.image("weight_{}".format(cell.cell_id), weight))
+            self.summary_vis_2.append(tf.summary.image("weight_{}_eval".format(cell.cell_id), weight))
 
     def loss(self, Y, normalize=False, name='MSE'):
 
         loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=Y, logits=self.logits))
 
         # Weight decay regularizer
-        regularizer_L2 = 0.001 * tf.add_n(tf.get_collection('losses'))
+        l2_loss = tf.losses.get_regularization_loss()
 
         # total loss by the mean of cross entropy loss and the weighted regularizer
-        self.total_loss = tf.reduce_mean(loss + regularizer_L2)
+        self.total_loss = loss + l2_loss
 
         # Accuracy for train and test set
         correct_prediction = tf.equal(tf.argmax(Y, 1), tf.argmax(self.probs, 1))
@@ -295,17 +309,14 @@ class Network(IModel):
         # Summarys for tensorboard
         self.summary.append(tf.summary.scalar("accuracy_train", accuracy))
         self.summary_val.append(tf.summary.scalar("accuracy_test", accuracy))
-        self.summary_val_2.append(tf.summary.scalar("accuracy_eval", accuracy))
 
         self.summary.append(tf.summary.scalar("cross_entropy_train", loss))
         self.summary_val.append(tf.summary.scalar("cross_entropy_test", loss))
-        self.summary_val_2.append(tf.summary.scalar("cross_entropy_eval", loss))
-        self.summary.append(tf.summary.scalar("Learning rate", self.learning_rate))
 
         self.summary.append(tf.summary.scalar("total_loss_train", self.total_loss))
         self.summary_val.append(tf.summary.scalar("total_loss_test", self.total_loss))
-        self.summary_val_2.append(tf.summary.scalar("total_loss_eval", self.total_loss))
 
+        self.summary_val.append(tf.summary.scalar("l2_loss", l2_loss))
         return self.total_loss
 
     def make_graph(self, path, filename):
@@ -317,10 +328,7 @@ class Network(IModel):
             for node in last_node[0]:
 
                 if len(node.prev_nodes) > 0:
-                    weigths = tf.where(node.prev_weights >= 1.0 / len(node.prev_nodes),
-                                               tf.ones_like(node.prev_weights),
-                                               tf.zeros_like(node.prev_weights))
-                    index = self.sess.run([weigths], feed_dict={self.is_eval: True})[0]
+                    index = self.sess.run([node.prev_weights_eval], feed_dict={self.is_eval: True})[0]
                     node.params.prev_node_names = []
                     for idx in range(len(index)):
                         if index[idx] == 1.0:
@@ -341,6 +349,13 @@ class Network(IModel):
         found = True
         edges = []
         architecture_params = [[self.nodes[-1].params.__dict__]]
+
+        def check_if_active(nodes):
+            for node in nodes:
+                if node.active:
+                    return True
+            return False
+
         while found:
             nodes = []
             params = []
@@ -350,7 +365,8 @@ class Network(IModel):
                     break
 
                 for prev_node in node.prev_nodes:
-                    if prev_node.active and node.active:
+                    if prev_node.active and node.active and \
+                            (check_if_active(prev_node.prev_nodes) or len(prev_node.prev_nodes) == 0):
                         if [prev_node, node] not in edges:
                             graph.edge(prev_node.name, node.name)
                             edges.append([prev_node, node])

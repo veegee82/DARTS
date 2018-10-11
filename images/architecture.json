@@ -1,0 +1,479 @@
+{
+    "node_params": [
+        [
+            {
+                "cell_id": 5,
+                "f_out": 256,
+                "func_name": "skip",
+                "layer": 2,
+                "name_in_graph": "R_C5L2_skip_concat",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C5L1_none",
+                    "R_C5L1_max_pool",
+                    "R_C5L1_avg_pool",
+                    "R_C5L1_skip",
+                    "R_C5L1_conv3x3",
+                    "R_C5L1_conv5x5"
+                ],
+                "stride": 1,
+                "type": "R"
+            }
+        ],
+        [
+            {
+                "cell_id": 5,
+                "f_out": 256,
+                "func_name": "none",
+                "layer": 1,
+                "name_in_graph": "R_C5L1_none",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C5L0_conv1x1_H-1"
+                ],
+                "stride": 2,
+                "type": "R"
+            },
+            {
+                "cell_id": 5,
+                "f_out": 256,
+                "func_name": "max_pool",
+                "layer": 1,
+                "name_in_graph": "R_C5L1_max_pool",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C5L0_conv1x1_H-1"
+                ],
+                "stride": 2,
+                "type": "R"
+            },
+            {
+                "cell_id": 5,
+                "f_out": 256,
+                "func_name": "avg_pool",
+                "layer": 1,
+                "name_in_graph": "R_C5L1_avg_pool",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C5L0_conv1x1_H-1"
+                ],
+                "stride": 2,
+                "type": "R"
+            },
+            {
+                "cell_id": 5,
+                "f_out": 256,
+                "func_name": "skip",
+                "layer": 1,
+                "name_in_graph": "R_C5L1_skip",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C5L0_conv1x1_H-1"
+                ],
+                "stride": 2,
+                "type": "R"
+            },
+            {
+                "cell_id": 5,
+                "f_out": 256,
+                "func_name": "conv3x3",
+                "layer": 1,
+                "name_in_graph": "R_C5L1_conv3x3",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C5L0_conv1x1_H-1"
+                ],
+                "stride": 2,
+                "type": "R"
+            },
+            {
+                "cell_id": 5,
+                "f_out": 256,
+                "func_name": "conv5x5",
+                "layer": 1,
+                "name_in_graph": "R_C5L1_conv5x5",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C5L0_conv1x1_H-1"
+                ],
+                "stride": 2,
+                "type": "R"
+            }
+        ],
+        [
+            {
+                "cell_id": 5,
+                "f_out": 256,
+                "func_name": "conv1x1",
+                "layer": 0,
+                "name_in_graph": "R_C5L0_conv1x1_H-1",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C4L4_skip_concat"
+                ],
+                "stride": 1,
+                "type": "R"
+            }
+        ],
+        [
+            {
+                "cell_id": 4,
+                "f_out": 128,
+                "func_name": "skip",
+                "layer": 4,
+                "name_in_graph": "N_C4L4_skip_concat",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C4L1_conv1x1",
+                    "N_C4L2_conv1x1"
+                ],
+                "stride": 1,
+                "type": "N"
+            }
+        ],
+        [
+            {
+                "cell_id": 4,
+                "f_out": 128,
+                "func_name": "skip",
+                "layer": 0,
+                "name_in_graph": "N_C4L0_skip_H-2",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L4_skip_concat"
+                ],
+                "stride": 2,
+                "type": "N"
+            },
+            {
+                "cell_id": 4,
+                "f_out": 128,
+                "func_name": "conv3x3",
+                "layer": 1,
+                "name_in_graph": "N_C4L1_conv3x3",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C4L0_skip_H-2"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 4,
+                "f_out": 128,
+                "func_name": "conv5x5",
+                "layer": 1,
+                "name_in_graph": "N_C4L1_conv5x5",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C4L0_skip_H-2"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 4,
+                "f_out": 128,
+                "func_name": "conv1x1",
+                "layer": 2,
+                "name_in_graph": "N_C4L2_conv1x1",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C4L1_conv3x3",
+                    "N_C4L1_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            }
+        ],
+        [
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "skip",
+                "layer": 4,
+                "name_in_graph": "N_C2L4_skip_concat",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L0_skip_H-2",
+                    "N_C2L0_conv1x1_H-1",
+                    "N_C2L1_none",
+                    "N_C2L1_avg_pool",
+                    "N_C2L1_skip",
+                    "N_C2L1_conv1x1",
+                    "N_C2L1_conv3x3",
+                    "N_C2L1_conv5x5",
+                    "N_C2L2_none",
+                    "N_C2L2_avg_pool",
+                    "N_C2L2_skip",
+                    "N_C2L2_conv1x1",
+                    "N_C2L2_conv3x3",
+                    "N_C2L2_conv5x5",
+                    "N_C2L3_none",
+                    "N_C2L3_avg_pool",
+                    "N_C2L3_skip",
+                    "N_C2L3_conv1x1",
+                    "N_C2L3_conv3x3",
+                    "N_C2L3_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 4,
+                "f_out": 128,
+                "func_name": "skip",
+                "layer": 0,
+                "name_in_graph": "N_C4L0_skip_H-2",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L4_skip_concat"
+                ],
+                "stride": 2,
+                "type": "N"
+            },
+            {
+                "cell_id": 4,
+                "f_out": 128,
+                "func_name": "conv3x3",
+                "layer": 1,
+                "name_in_graph": "N_C4L1_conv3x3",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C4L0_skip_H-2"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 4,
+                "f_out": 128,
+                "func_name": "conv5x5",
+                "layer": 1,
+                "name_in_graph": "N_C4L1_conv5x5",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C4L0_skip_H-2"
+                ],
+                "stride": 1,
+                "type": "N"
+            }
+        ],
+        [
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv1x1",
+                "layer": 0,
+                "name_in_graph": "N_C2L0_conv1x1_H-1",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C1L2_skip_concat"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv5x5",
+                "layer": 1,
+                "name_in_graph": "N_C2L1_conv5x5",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L0_conv1x1_H-1"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv5x5",
+                "layer": 2,
+                "name_in_graph": "N_C2L2_conv5x5",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L1_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "none",
+                "layer": 3,
+                "name_in_graph": "N_C2L3_none",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L2_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "avg_pool",
+                "layer": 3,
+                "name_in_graph": "N_C2L3_avg_pool",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L2_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "skip",
+                "layer": 3,
+                "name_in_graph": "N_C2L3_skip",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L2_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv1x1",
+                "layer": 3,
+                "name_in_graph": "N_C2L3_conv1x1",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L2_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv3x3",
+                "layer": 3,
+                "name_in_graph": "N_C2L3_conv3x3",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L2_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv5x5",
+                "layer": 3,
+                "name_in_graph": "N_C2L3_conv5x5",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L2_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            }
+        ],
+        [
+            {
+                "cell_id": 1,
+                "f_out": 64,
+                "func_name": "skip",
+                "layer": 2,
+                "name_in_graph": "R_C1L2_skip_concat",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C1L1_conv1x1"
+                ],
+                "stride": 1,
+                "type": "R"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv1x1",
+                "layer": 0,
+                "name_in_graph": "N_C2L0_conv1x1_H-1",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C1L2_skip_concat"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv5x5",
+                "layer": 1,
+                "name_in_graph": "N_C2L1_conv5x5",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L0_conv1x1_H-1"
+                ],
+                "stride": 1,
+                "type": "N"
+            },
+            {
+                "cell_id": 2,
+                "f_out": 64,
+                "func_name": "conv5x5",
+                "layer": 2,
+                "name_in_graph": "N_C2L2_conv5x5",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C2L1_conv5x5"
+                ],
+                "stride": 1,
+                "type": "N"
+            }
+        ],
+        [
+            {
+                "cell_id": 1,
+                "f_out": 64,
+                "func_name": "conv1x1",
+                "layer": 1,
+                "name_in_graph": "R_C1L1_conv1x1",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "R_C1L0_conv1x1_H-2"
+                ],
+                "stride": 2,
+                "type": "R"
+            }
+        ],
+        [
+            {
+                "cell_id": 1,
+                "f_out": 64,
+                "func_name": "conv1x1",
+                "layer": 0,
+                "name_in_graph": "R_C1L0_conv1x1_H-2",
+                "pre_activation": true,
+                "prev_node_names": [
+                    "N_C0L0_conv3x3_input-1"
+                ],
+                "stride": 1,
+                "type": "R"
+            }
+        ],
+        [
+            {
+                "cell_id": 0,
+                "f_out": 32,
+                "func_name": "conv3x3",
+                "layer": 0,
+                "name_in_graph": "N_C0L0_conv3x3_input-1",
+                "pre_activation": true,
+                "prev_node_names": [],
+                "stride": 1,
+                "type": "N"
+            }
+        ]
+    ]
+}

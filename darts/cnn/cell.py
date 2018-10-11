@@ -1,4 +1,5 @@
 import tensorflow as tf
+from tfcore.utilities.utils import reduce_std
 from cnn.node import Node
 
 
@@ -12,9 +13,14 @@ class Cell(object):
                  type,
                  cell_id,
                  is_training,
-                 is_eval,
                  activation='relu',
-                 normalization='IN'):
+                 normalization='IN',
+                 L2_weight=0.001,
+                 multiplier=1.0,
+                 summary_val=None,
+                 summary_val_2=None,
+                 summary_vis=None,
+                 summary_vis_2=None):
 
         self.stride = 1
         self.cell_id = cell_id
@@ -22,6 +28,7 @@ class Cell(object):
         self.weight_lenght = []
         self.alphas = []
         self.weights = []
+        self.weights_eval = []
 
         if type is 'R':
             self.stride = 2
@@ -39,6 +46,7 @@ class Cell(object):
                                   type=type,
                                   activation=activation,
                                   normalization=normalization,
+                                  L2_weight=L2_weight,
                                   prev_nodes=[cell_prev_prev],
                                   is_training=is_training,
                                   name='H-2')
@@ -52,6 +60,7 @@ class Cell(object):
                                   type=type,
                                   activation=activation,
                                   normalization=normalization,
+                                  L2_weight=L2_weight,
                                   prev_nodes=[cell_prev_prev],
                                   is_training=is_training,
                                   name='H-2')
@@ -65,6 +74,7 @@ class Cell(object):
                          type=type,
                          activation=activation,
                          normalization=normalization,
+                         L2_weight=L2_weight,
                          prev_nodes=[cell_prev],
                          is_training=is_training,
                          name='H-1')
@@ -72,14 +82,18 @@ class Cell(object):
         self.nodes = [[node_prev_prev, node_prev]]
 
         for layer in range(len(self.weights)):
-            self.weights[layer] = tf.nn.softmax(self.alphas[layer])
+            self.weights[layer] = tf.nn.softmax(self.weights[layer])
 
-            self.weights[layer] = tf.cond(is_eval,
-                                          lambda: tf.where(
-                                              self.weights[layer] >= 1.0 / int(self.weights[layer].shape[0]),
+            std = reduce_std(self.weights[layer]) * multiplier
+            var, _ = tf.nn.top_k(self.weights[layer], k=1)
+
+            self.weights_eval[layer] = tf.where(self.weights[layer] >= var[0] - std,
+                                              #self.weights[layer] >= 1.0 / int(self.weights[layer].shape[0]),
                                               tf.ones_like(self.weights[layer]),
-                                              tf.zeros_like(self.weights[layer])),
-                                          lambda: self.weights[layer])
+                                              tf.zeros_like(self.weights[layer]))
+
+            self.make_summary(self.weights[layer], cell_id, layer, summary_val, summary_vis, name='')
+            self.make_summary(self.weights_eval[layer], cell_id, layer, summary_val_2, summary_vis_2, name='_eval')
 
         for layer in range(self.layer):
             net = 0
@@ -102,7 +116,9 @@ class Cell(object):
                                 type=type,
                                 activation=activation,
                                 normalization=normalization,
+                                L2_weight=L2_weight,
                                 prev_weights=self.weights[layer],
+                                prev_weights_eval=self.weights_eval[layer],
                                 prev_nodes=prev_nodes,
                                 is_training=is_training)
                 new_nodes.append(new_node)
@@ -130,7 +146,9 @@ class Cell(object):
                         type=type,
                         activation=activation,
                         normalization=normalization,
+                        L2_weight=L2_weight,
                         prev_weights=self.weights[-1],
+                        prev_weights_eval=self.weights_eval[-1],
                         prev_nodes=prev_nodes,
                         is_training=is_training,
                         name='concat')
@@ -144,17 +162,20 @@ class Cell(object):
                 if type is 'R' and n > 0:
                     weight_count -= 2
                 self.weight_lenght.append(weight_count)
-                alphas = tf.get_variable(name='alpha_{}_{}'.format(level, weight_count),
-                                         shape=[weight_count],
-                                         initializer=tf.random_normal_initializer(stddev=0.001,
-                                                                                  mean=1.0 / weight_count),
-                                         trainable=True)
 
                 weights = tf.get_variable(name='weight_{}_{}'.format(level, weight_count),
                                           shape=[weight_count],
                                           initializer=tf.random_normal_initializer(stddev=0.001,
                                                                                    mean=1.0 / weight_count),
+                                          regularizer=tf.contrib.layers.l2_regularizer(scale=1e-3),
                                           trainable=True)
 
-                self.alphas.append(alphas)
                 self.weights.append(weights)
+                self.weights_eval.append(weights)
+
+    def make_summary(self, weights, cell_id, layer, summary_val, summary_vis, name=''):
+        weight = tf.expand_dims(weights, axis=1)
+        weight = tf.expand_dims(weight, axis=0)
+        weight = tf.expand_dims(weight, axis=0)
+        summary_vis.append(tf.summary.image("weight_C{}_L{}{}".format(cell_id, layer, name), weight))
+        summary_val.append(tf.summary.text("weights_C{}_L{}{}".format(cell_id, layer, name), tf.as_string(weights)))
