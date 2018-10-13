@@ -17,7 +17,23 @@ orders of magnitude faster than state-of-the-art non-differentiable techniques.
 
 Figure 1: Relaxing of the architecture.
 
-### Found Architecture
+## Preprocessing
+1. Central cropping of input-image to image size 960x960
+2. Find nail by treshold segmentation. \
+   2.1 Final treshold T = max(image) - 32 \
+   2.2 False if image(x,y) < T else True 
+3. Find central mass point center_x and center_y of True-Area
+4. Central cropping at center_x and center_y with size 448x448
+5. Downscalling to 112x112 to decrease image size and to reduce noise of background
+
+##### Cropped image to image size 448x448
+![bad](https://github.com/Shumway82/Binary-Classification/blob/master/Data/images/image_bad_448.jpeg)
+
+##### Final sample of good and bad nails 
+![bad](https://github.com/Shumway82/Binary-Classification/blob/master/Data/images/image_bad_112.jpeg)
+![bad](https://github.com/Shumway82/Binary-Classification/blob/master/Data/images/image_good_112.jpeg)
+
+## Found Architecture
 
 ![bad](https://raw.githubusercontent.com/veegee82/DARTS/master/images/architecture.png)
 
